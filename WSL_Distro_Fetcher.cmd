@@ -36,8 +36,8 @@
 @Echo Off
 @SETLOCAL enableextensions
 SET $PROGRAM_NAME=WSL_DISTRO_FETCHER
-SET $Version=0.1.0
-SET $BUILD=2021-03-26 15:00
+SET $Version=0.1.1
+SET $BUILD=20240910 1430
 Title %$PROGRAM_NAME%
 Prompt WSLDF$G
 color 8F
@@ -203,7 +203,7 @@ echo.
 
 
 :::: Chocolatey Package Manager Check :::::::::::::::::::::::::::::::::::::::::
-choco info 2> nul > "%$LOGPATH%\var\Chocolatey_Version.txt"
+choco --version 2> nul > "%$LOGPATH%\var\Chocolatey_Version.txt"
 SET $STATUS_CHOCO=%ERRORLEVEL%
 IF %$STATUS_CHOCO% EQU 0 type "%$LOGPATH%\var\Chocolatey_Version.txt" >> "%$LogPath%\%$LOG%" 
 IF %$STATUS_CHOCO% EQU 0 GoTo skipCC

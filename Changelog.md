@@ -1,4 +1,4 @@
-# ChangeLog: ADDS (Active Directory Domain Services) Tool
+# ChangeLog: WSL (Windows Subsystem for Linux) Tool
 
 
 ## Features Heading
@@ -19,20 +19,27 @@
 
 ---
 
+## Version 1.6.0
+#### Changed
+- Use wsl --install quick method
+- HUD verbage
+- timeouts
+
+#### Added
+- wsl --update on each run
+
+---
+
+
 ## Version 1.5.0 Build: 2021-12-09
 #### Changed
 - WSL User guide
 - Readme
 
----
-
-
 ## Version 1.4.0 Build: 2021-12-08
 #### Added
 - WSL User guide
 - .gitignore
-
-
 
 
 ## Version 1.3.1 Build: 2021-10-07

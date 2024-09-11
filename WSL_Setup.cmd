@@ -36,8 +36,8 @@
 @Echo Off
 @SETLOCAL enableextensions
 SET $PROGRAM_NAME=WSL_Setup
-SET $Version=1.3.0
-SET $BUILD=2021-03-31 08:30
+SET $Version=1.6.0
+SET $BUILD=20240911 0900
 Title %$PROGRAM_NAME%
 Prompt WSL$G
 color 8F
@@ -95,27 +95,14 @@ SET $STATUS_WSL_DEFAULT_VERSION=
 	:: Start session and write to log
 	echo Start: %DATE% %TIME% >> "%$LogPath%\%$LOG%"
 	echo Program Name: %$PROGRAM_NAME% >> "%$LogPath%\%$LOG%"
-	echo Program Version: %$Version% >> "%$LogPath%\%$LOG%"	
+	echo Program Version: %$Version% >> "%$LogPath%\%$LOG%"
+	echo Program Build: %$BUILD% >> "%$LogPath%\%$LOG%"
 	if %$DEGUB_MODE% EQU 1 echo Program Build: %$BUILD% >> "%$LogPath%\%$LOG%"
 	echo Program Path: %$PROGRAM_PATH% >> "%$LogPath%\%$LOG%"
 	echo PC: %COMPUTERNAME% >> "%$LogPath%\%$LOG%"
 	echo User: %USERNAME% >> "%$LogPath%\%$LOG%"
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-
-:::: Check if complete ::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" (
-	CALL :banner
-	call :GNU
-	color 0A
-	echo.
-	echo WSL setup is done!
-	echo Successfully installed on this system!
-	echo WSL is successfully installed on this system! >> "%$LogPath%\%$LOG%"
-	echo.
-	GoTo jumpC
-	)
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :::: Administrator Privilege Check ::::::::::::::::::::::::::::::::::::::::::::
 :subA
@@ -154,7 +141,7 @@ echo --------------------------------------------------------------------
 echo.
 echo	Part II
 echo		WSL Kernel update: %$STATUS_WSL_KERNEL_UPDATE%
-echo		Set WSL Default version [2]: %$STATUS_WSL_DEFAULT_VERSION%
+echo		WSL Default version: %$STATUS_WSL_DEFAULT_VERSION%
 echo --------------------------------------------------------------------
 GoTo:EOF
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
@@ -208,6 +195,51 @@ echo.
 	echo.
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
+
+:: Check WSL Installation :::::::::::::::::::::::::::::::::::::::::::::::::::::
+wsl --status
+SET $STATUS_WSL=%ERRORLEVEL%
+IF %$STATUS_WSL% EQU 0 (echo WSL already installed.
+	SET $STATUS_VT=Enabled
+	SET $STATUS_MICROSOFT-WINDOWS-SUBSYSTEM-LINUX=Done
+	SET $STATUS_VIRTUALMACHINEPLATFORM=Done
+	SET $STATUS_REBOOT=Done
+	wsl --status | find /I "2" 2> nul
+	IF %ERRORLEVEL% EQU 0 SET $STATUS_WSL_DEFAULT_VERSION=2
+	GoTo uwal)
+IF %$STATUS_WSL% EQU 50 echo WSL not installed; will try quick method...
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+::::	WSL Quick method	:::::::::::::::::::::::::::::::::::::::::::::::::::
+SET $WSL_INSTALL=1
+wsl --install --no-distribution
+SET $WSL_INSTALL_ERROR=%ERRORLEVEL%
+SET $STATUS_VT=Enabled
+SET $STATUS_MICROSOFT-WINDOWS-SUBSYSTEM-LINUX=Done
+SET $STATUS_VIRTUALMACHINEPLATFORM=Done
+SET $STATUS_REBOOT=Activated
+IF %$WSL_INSTALL_ERROR% EQU 0 (shutdown -r -t 15 /c "WSL Setup requires reboot..." /d p:2:4
+	GoTo uwal)
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+REM Below code is old.
+:::: START OF OLD code:::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+:::: Check if complete ::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" (
+	CALL :banner
+	call :GNU
+	color 0A
+	echo.
+	echo WSL setup is done!
+	echo Successfully installed on this system!
+	echo WSL is successfully installed on this system! >> "%$LogPath%\%$LOG%"
+	echo.
+	GoTo jumpC
+	)
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 :checkPI
 IF EXIST "%$LOGPATH%\var\Part-I-Reboot.txt" (
 	SET $STATUS_VT=Check
@@ -217,6 +249,15 @@ IF EXIST "%$LOGPATH%\var\Part-I-Reboot.txt" (
 	GoTo PartII
 	)
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+::	Manual method::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+	CALL :banner
+	CALL :HUD
+	echo.
+Echo Something didn't go according to plan, trying more manual method....
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
 
 ::::Virtualization Check ::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :VT
@@ -228,9 +269,12 @@ echo.
 echo Checking to see if:
 echo	[VT] Virtualization Enabled In Firmware (BIOS) is turned on...
 echo.
+
+REM The following can not be relied on, as WSL can work with these being false.
 wmic CPU GET VirtualizationFirmwareEnabled /VALUE > "%$LOGPATH%\var\$VirtualizationFirmwareEnabled.txt"
 wmic CPU GET VMMonitorModeExtensions /VALUE > "%$LOGPATH%\var\$VMMonitorModeExtensions.txt"
 wmic CPU GET SecondLevelAddressTranslationExtensions /VALUE > "%$LOGPATH%\var\$SecondLevelAddressTranslationExtensions.txt"
+
 find /I "VirtualizationFirmwareEnabled=TRUE" "%$LOGPATH%\var\$VirtualizationFirmwareEnabled.txt" 1> nul 2> nul && (SET $VT_CHECK=1)
 echo %$VT_CHECK% > "%$LOGPATH%\var\$VT_CHECK.txt"
 IF %$VT_CHECK% EQU 1 ECHO Virtualization Enabled in the firmware, i.e. BIOS!
@@ -266,7 +310,6 @@ IF %$VT_CHECK% EQU 1 GoTo skipVT
 
 :skipVT
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-
 
 CALL :banner
 CALL :HUD
@@ -304,93 +347,43 @@ PAUSE
 :skipReboot
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-
 :::: Part II ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:PartII
-CALL :banner
-CALL :HUD
-echo.
-echo Checking on WSL kernel package update...
-echo.
-REM This method takes too long
-:: wmic product GET name /VALUE | FIND /I "Name=Windows Subsystem for Linux Update"
-::	Check registry, much quicker
-reg query HKEY_LOCAL_MACHINE\SOFTWARE\Classes\Installer\Products\997646D800BD0004EAA757A6504A1F8D\SourceList /V PackageName 2> nul > "%$LOGPATH%\var\WSL_Kernel_Package.txt"
-SET $WSL_KERNEL_PACKAGE=%ERRORLEVEL%
-echo $WSL_KERNEL_PACKAGE: %$WSL_KERNEL_PACKAGE% > "%$LOGPATH%\var\WSL_Kernel_Package.txt"
-IF %$WSL_KERNEL_PACKAGE% NEQ 0 (GoTo WSL_Downl) ELSE (
-		SET $STATUS_WSL_KERNEL_UPDATE=Done
-		GoTo skipWSLKU
-		)
-
-:WSL_Downl
-IF EXIST "%PUBLIC%\Downloads\wsl_update_x64.msi" GoTo skipWSL_Downl
-:: Check WGET
-IF EXIST "./tools/wget.exe" SET "PATH=%PATH%;%$PROGRAM_PATH%\tools"
-wget.exe -V 2>nul > "%$LOGPATH%\var\WGET_VERSION.txt"
-SET $WGET_STATUS=%ERRORLEVEL%
-IF %$WGET_STATUS% EQU 0 GoTo subWGET
-IF %$WGET_STATUS% NEQ 0 GoTo subCURL
-
-:subWGET
-echo.
-CD /D "%PUBLIC%\Downloads"
-wget.exe "https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi"
-IF %ERRORLEVEL% NEQ 0 GoTo subCURL
-GoTo skipWSL_Downl
-
-
-:subCURL
-:: Backup in case WGET isn't available
-echo.
-curl -V 2> nul > "%$LOGPATH%\var\CURL_VERSION.txt"
-curl https://wslstorestorage.blob.core.windows.net/wslblob/wsl_update_x64.msi  > %PUBLIC%\Downloads\wsl_update_x64.msi
-
-:skipWSL_Downl
-
-:::: WSL Kernel Package Install :::::::::::::::::::::::::::::::::::::::::::::::
-:install_WSLKP
-CD /D "%PUBLIC%\Downloads"
-echo Installing WSL 2 Kernel Update...
-%PUBLIC%\Downloads\wsl_update_x64.msi /passive /q /norestart /log "%$LOGPATH%\wsl_update_x64.log"
-IF EXIST "%$LOGPATH%\wsl_update_x64.log" FIND /I "Installation completed successfully." "%APPDATA%\WSL\wsl_update_x64.log" 2> nul
-SET $ERROR_WSLKU=%ERRORLEVEL%
-IF %$ERROR_WSLKU% NEQ 0 SET $STATUS_WSL_KERNEL_UPDATE=Failed
-IF %$ERROR_WSLKU% EQU 0 (
-	SET $STATUS_WSL_KERNEL_UPDATE=Done
-	GoTo skipWSLKU
-	)
-:skipWSLKU
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :Conf
 CALL :banner
 CALL :HUD
 
 wsl --set-default-version 2
-SET $STATUS_WSL_DEFAULT_VERSION=Done
+SET $STATUS_WSL_DEFAULT_VERSION=2
 echo WSL Setup Part-II: %DATE% %TIME% > "%$LOGPATH%\var\Part-II-Complete.txt"
 IF EXIST "%$LOGPATH%\var\Part-II-Complete.txt" echo WSL Setup completed: %DATE% %TIME% > "%$LOGPATH%\WSL-Setup_Complete.txt"
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-:: jump Error section
-GoTo end
-:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::: END OF OLD code:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+
+:: WSL Kernel update:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:uwal
+wsl --update
+SET $STATUS_WSL_KERNEL_UPDATE=Done
+GoTo End
+
 
 :::: End ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :End
-IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" IF %$DEGUB_MODE% EQU 0 RD /S /Q "%$LOGPATH%\var"
+::IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" IF %$DEGUB_MODE% EQU 0 RD /S /Q "%$LOGPATH%\var"
 CALL :banner
 CALL :HUD
 CALL :GNU
 echo.
-IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" (
-	color 0A
-	echo WSL Setup Completed!
-	)
-IF NOT EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" echo WSL Setup is not complete!
+echo WSL (Windows Subsystem for Linux) installation is complete! 
+::IF EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" (
+::	color 0A
+::	echo WSL Setup Completed!
+::	)
+::IF NOT EXIST "%$LOGPATH%\WSL-Setup_Complete.txt" echo WSL Setup is not complete!
 :jumpC
 echo.
 echo End %DATE% %TIME% >> "%$LogPath%\%$LOG%"
-timeout /t 60
+timeout /t 30
 exit
